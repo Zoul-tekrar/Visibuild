@@ -1,0 +1,11 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { router } from "expo-router";
+import { useState } from "react";
+import { Alert, Pressable, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+export default function ForgotPasswordScreen() {
+  const [email, setEmail] = useState("");
+  const submit = () => { if (!email.includes("@")) { Alert.alert("Check your email", "Enter a valid email address."); return; } Alert.alert("Reset link sent", "The prototype has simulated sending password reset instructions.", [{ text: "Back to login", onPress: () => router.replace("/login") }]); };
+  return <SafeAreaView className="flex-1 bg-[#F8FBFC]" edges={["top", "bottom"]}><View className="px-6 pt-3"><Pressable onPress={() => router.back()} className="h-11 w-11 items-center justify-center rounded-full border border-[#DDE5EA] bg-white"><Ionicons name="chevron-back" size={22} color="#14375F" /></Pressable></View><View className="flex-1 justify-center px-6 pb-16"><View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#E7F5F3]"><Ionicons name="key-outline" size={30} color="#078C7D" /></View><Text className="mt-6 text-3xl font-bold text-[#102F52]">Reset your password</Text><Text className="mt-3 text-base leading-6 text-[#687987]">Enter your builder account email and we’ll send instructions to get you back in.</Text><Text className="mb-2 mt-8 text-sm font-semibold text-[#14375F]">Email address</Text><View className="h-14 flex-row items-center rounded-xl border border-[#DDE5EA] bg-white px-4"><Ionicons name="mail-outline" size={20} color="#71808E" /><TextInput value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="builder@company.co.uk" placeholderTextColor="#94A3B8" className="ml-3 flex-1 text-base text-[#14375F]" /></View><Pressable onPress={submit} className="mt-6 h-14 flex-row items-center justify-center rounded-xl bg-[#078C7D]"><Text className="text-base font-bold text-white">Send reset link</Text><Ionicons name="arrow-forward" size={19} color="white" style={{ marginLeft: 8 }} /></Pressable><Text onPress={() => router.replace("/login")} className="mt-6 text-center text-sm font-semibold text-[#078C7D]">Return to login</Text></View></SafeAreaView>;
+}
