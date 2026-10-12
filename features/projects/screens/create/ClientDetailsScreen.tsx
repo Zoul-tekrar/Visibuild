@@ -11,6 +11,11 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { z } from "zod";
+
+const clientSchema = z.object({
+  fullName: z.string().trim().min(1, "Please enter the clients name"),
+});
 
 type InputFieldProps = {
   label: string;

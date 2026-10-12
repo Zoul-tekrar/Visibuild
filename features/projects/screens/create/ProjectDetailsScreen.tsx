@@ -1,6 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { Controller, useForm } from "react-hook-form";
 import {
   Alert,
   Pressable,
@@ -11,6 +13,21 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { z } from "zod";
+
+const projectSchema = z.object({
+  projectName: z.string().trim().min(1, "Please enter a project name"),
+  projectAddress: z.string().trim().min(1, "Please enter a project address"),
+  projectReference: z.string().trim().optional(),
+  projectType: z.string().trim(),
+  postcode: z.string().trim().min(1, "Please enter a postcode"),
+  startDate: z.string().trim(),
+  completionDate: z.string().trim(),
+  estimatedDuration: z.string().trim().refine(
+    (value) => value === "" || (/^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) > 0),
+    "Enter a positive whole number of weeks, such as 24",
+  ),
+});
 
 type InputFieldProps = {
   label: string;
@@ -19,6 +36,10 @@ type InputFieldProps = {
   keyboardType?: TextInputProps["keyboardType"];
   autoCapitalize?: TextInputProps["autoCapitalize"];
   optional?: boolean;
+  value?: string;
+  onChangeText?: TextInputProps["onChangeText"];
+  onBlur?: TextInputProps["onBlur"];
+  error?: string;
 };
 
 function InputField({
@@ -28,6 +49,10 @@ function InputField({
   keyboardType = "default",
   autoCapitalize = "sentences",
   optional = false,
+  value,
+  onChangeText,
+  onBlur,
+  error,
 }: InputFieldProps) {
   return (
     <View className="mb-5">
@@ -47,9 +72,17 @@ function InputField({
           placeholderTextColor="#94A3B8"
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          value={value}
+          onChangeText={onChangeText}
+          onBlur={onBlur}
           className="ml-3 flex-1 text-base text-[#14375F]"
         />
       </View>
+      {error && (
+        <Text accessibilityRole="alert" className="mt-2 text-sm text-red-600">
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
@@ -58,9 +91,15 @@ type SelectionFieldProps = {
   label: string;
   placeholder: string;
   icon: keyof typeof Ionicons.glyphMap;
+  value?: string;
 };
 
-function SelectionField({ label, placeholder, icon }: SelectionFieldProps) {
+function SelectionField({
+  label,
+  placeholder,
+  icon,
+  value,
+}: SelectionFieldProps) {
   return (
     <View className="mb-5">
       <Text className="mb-2 text-sm font-semibold text-[#14375F]">{label}</Text>
@@ -69,7 +108,7 @@ function SelectionField({ label, placeholder, icon }: SelectionFieldProps) {
         <Ionicons name={icon} size={20} color="#71808E" />
 
         <Text className="ml-3 flex-1 text-base text-[#94A3B8]">
-          {placeholder}
+          {value || placeholder}
         </Text>
 
         <Ionicons name="chevron-down" size={19} color="#71808E" />
@@ -79,6 +118,19 @@ function SelectionField({ label, placeholder, icon }: SelectionFieldProps) {
 }
 
 export default function CreateProjectScreen() {
+  const form = useForm<z.infer<typeof projectSchema>>({
+    resolver: zodResolver(projectSchema),
+    defaultValues: {
+      projectName: "",
+      projectAddress: "",
+      projectReference: "",
+      projectType: "",
+      postcode: "",
+      startDate: "",
+      completionDate: "",
+      estimatedDuration: "",
+    },
+  });
   return (
     <SafeAreaView className="flex-1 bg-[#F8FBFC]" edges={["top", "bottom"]}>
       <StatusBar style="dark" backgroundColor="#F8FBFC" />
@@ -203,25 +255,51 @@ export default function CreateProjectScreen() {
               Basic details
             </Text>
           </View>
+          <Controller
+            control={form.control}
+            name="projectName"
+            render={({ field: { value, onChange, onBlur }, fieldState: { error } }) => (
+              <InputField
+                label="Project name"
+                placeholder="e.g. Oakwood House Extension"
+                icon="business-outline"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={error?.message}
+              />
+            )}
+          ></Controller>
 
-          <InputField
-            label="Project name"
-            placeholder="e.g. Oakwood House Extension"
-            icon="business-outline"
+          <Controller
+            control={form.control}
+            name="projectType"
+            render={({ field: { value } }) => (
+              <SelectionField
+                label="Project type"
+                placeholder="Select project type"
+                icon="construct-outline"
+                value={value}
+              />
+            )}
           />
 
-          <SelectionField
-            label="Project type"
-            placeholder="Select project type"
-            icon="construct-outline"
-          />
-
-          <InputField
-            label="Project reference"
-            placeholder="e.g. PRJ-2026-001"
-            icon="document-text-outline"
-            autoCapitalize="characters"
-            optional
+          <Controller
+            control={form.control}
+            name="projectReference"
+            render={({ field: { value, onChange, onBlur }, fieldState: { error } }) => (
+              <InputField
+                label="Project reference"
+                placeholder="e.g. PRJ-2026-001"
+                icon="document-text-outline"
+                autoCapitalize="characters"
+                optional
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={error?.message}
+              />
+            )}
           />
 
           {/* Project location heading */}
@@ -244,22 +322,46 @@ export default function CreateProjectScreen() {
             <View className="min-h-24 flex-row items-start rounded-xl border border-[#DDE5EA] bg-white px-4 py-4">
               <Ionicons name="location-outline" size={20} color="#71808E" />
 
-              <TextInput
-                placeholder="Enter the full project address"
-                placeholderTextColor="#94A3B8"
-                multiline
-                textAlignVertical="top"
-                autoCapitalize="words"
-                className="ml-3 flex-1 text-base leading-6 text-[#14375F]"
-              />
+              <Controller
+                control={form.control}
+                name="projectAddress"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <TextInput
+                    placeholder="Enter the full project address"
+                    placeholderTextColor="#94A3B8"
+                    multiline
+                    textAlignVertical="top"
+                    autoCapitalize="words"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    className="ml-3 flex-1 text-base leading-6 text-[#14375F]"
+                  />
+                )}
+              ></Controller>
             </View>
+            {form.formState.errors.projectAddress && (
+              <Text className="mt-2 text-sm text-red-600">
+                {form.formState.errors.projectAddress.message}
+              </Text>
+            )}
           </View>
 
-          <InputField
-            label="Postcode"
-            placeholder="e.g. SW1A 1AA"
-            icon="navigate-outline"
-            autoCapitalize="characters"
+          <Controller
+            control={form.control}
+            name="postcode"
+            render={({ field: { value, onChange, onBlur }, fieldState: { error } }) => (
+              <InputField
+                label="Postcode"
+                placeholder="e.g. SW1A 1AA"
+                icon="navigate-outline"
+                autoCapitalize="characters"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={error?.message}
+              />
+            )}
           />
 
           {/* Schedule heading */}
@@ -283,9 +385,15 @@ export default function CreateProjectScreen() {
               <View className="h-14 flex-row items-center rounded-xl border border-[#DDE5EA] bg-white px-4">
                 <Ionicons name="calendar-outline" size={19} color="#71808E" />
 
-                <Text className="ml-2 flex-1 text-sm text-[#94A3B8]">
-                  Select date
-                </Text>
+                <Controller
+                  control={form.control}
+                  name="startDate"
+                  render={({ field: { value } }) => (
+                    <Text className="ml-2 flex-1 text-sm text-[#94A3B8]">
+                      {value || "Select date"}
+                    </Text>
+                  )}
+                />
               </View>
             </View>
 
@@ -297,18 +405,35 @@ export default function CreateProjectScreen() {
               <View className="h-14 flex-row items-center rounded-xl border border-[#DDE5EA] bg-white px-4">
                 <Ionicons name="flag-outline" size={19} color="#71808E" />
 
-                <Text className="ml-2 flex-1 text-sm text-[#94A3B8]">
-                  Select date
-                </Text>
+                <Controller
+                  control={form.control}
+                  name="completionDate"
+                  render={({ field: { value } }) => (
+                    <Text className="ml-2 flex-1 text-sm text-[#94A3B8]">
+                      {value || "Select date"}
+                    </Text>
+                  )}
+                />
               </View>
             </View>
           </View>
 
-          <InputField
-            label="Estimated duration"
-            placeholder="e.g. 24 weeks"
-            icon="time-outline"
-            keyboardType="number-pad"
+          <Controller
+            control={form.control}
+            name="estimatedDuration"
+            render={({ field: { value, onChange, onBlur }, fieldState: { error } }) => (
+              <InputField
+                label="Estimated duration (weeks)"
+                placeholder="e.g. 24"
+                icon="time-outline"
+                keyboardType="number-pad"
+                optional
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={error?.message}
+              />
+            )}
           />
 
           {/* Project stages heading */}
@@ -434,7 +559,9 @@ export default function CreateProjectScreen() {
 
           {/* Visual-only continue button */}
           <Pressable
-            onPress={() => router.push("/create-project/client")}
+            onPress={form.handleSubmit(() =>
+              router.push("/create-project/client"),
+            )}
             className="h-14 flex-row items-center justify-center rounded-xl bg-[#078C7D] active:opacity-80"
           >
             <Text className="text-base font-bold text-white">
