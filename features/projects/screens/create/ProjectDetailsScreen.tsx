@@ -2,6 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { Picker } from "@react-native-picker/picker";
 import { Controller, useForm } from "react-hook-form";
 import {
   Alert,
@@ -15,11 +16,16 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
 
+const PROJECT_TYPES = ["Extension", "Renovation", "New build", "Conversion", "Other"] as const;
+
 const projectSchema = z.object({
   projectName: z.string().trim().min(1, "Please enter a project name"),
   projectAddress: z.string().trim().min(1, "Please enter a project address"),
   projectReference: z.string().trim().optional(),
-  projectType: z.string().trim(),
+  projectType: z.string().trim().min(1, "Please select a project type").refine(
+    (value) => value === "" || PROJECT_TYPES.some((option) => option === value),
+    "Please select one of the available project types",
+  ),
   postcode: z.string().trim().min(1, "Please enter a postcode"),
   startDate: z.string().trim(),
   completionDate: z.string().trim(),
@@ -83,36 +89,6 @@ function InputField({
           {error}
         </Text>
       )}
-    </View>
-  );
-}
-
-type SelectionFieldProps = {
-  label: string;
-  placeholder: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  value?: string;
-};
-
-function SelectionField({
-  label,
-  placeholder,
-  icon,
-  value,
-}: SelectionFieldProps) {
-  return (
-    <View className="mb-5">
-      <Text className="mb-2 text-sm font-semibold text-[#14375F]">{label}</Text>
-
-      <View className="h-14 flex-row items-center rounded-xl border border-[#DDE5EA] bg-white px-4">
-        <Ionicons name={icon} size={20} color="#71808E" />
-
-        <Text className="ml-3 flex-1 text-base text-[#94A3B8]">
-          {value || placeholder}
-        </Text>
-
-        <Ionicons name="chevron-down" size={19} color="#71808E" />
-      </View>
     </View>
   );
 }
@@ -274,13 +250,35 @@ export default function CreateProjectScreen() {
           <Controller
             control={form.control}
             name="projectType"
-            render={({ field: { value } }) => (
-              <SelectionField
-                label="Project type"
-                placeholder="Select project type"
-                icon="construct-outline"
-                value={value}
-              />
+            render={({ field: { value, onChange, onBlur }, fieldState: { error } }) => (
+              <View className="mb-5">
+                <Text className="mb-2 text-sm font-semibold text-[#14375F]">
+                  Project type
+                </Text>
+                <View className="overflow-hidden rounded-xl border border-[#DDE5EA] bg-white">
+                  <Picker
+                    accessibilityLabel="Project type"
+                    selectedValue={value}
+                    onValueChange={(selectedValue) => {
+                      onChange(selectedValue);
+                      onBlur();
+                    }}
+                    onBlur={onBlur}
+                    mode="dropdown"
+                    style={{ width: "100%", color: "#14375F", backgroundColor: "white" }}
+                  >
+                    <Picker.Item label="Select project type" value="" />
+                    {PROJECT_TYPES.map((option) => (
+                      <Picker.Item key={option} label={option} value={option} />
+                    ))}
+                  </Picker>
+                </View>
+                {error && (
+                  <Text accessibilityRole="alert" className="mt-2 text-sm text-red-600">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
             )}
           />
 
